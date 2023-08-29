@@ -872,7 +872,7 @@ func (c *AuRa) GenesisEpochData(header *types.Header, caller consensus.SystemCal
 	return res, nil
 }
 
-func (c *AuRa) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (c *AuRa) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, state *state.IntraBlockState) error {
 	return nil
 	//header := block.Header()
 	//

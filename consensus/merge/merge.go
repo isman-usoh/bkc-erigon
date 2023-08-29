@@ -255,9 +255,9 @@ func (s *Merge) verifyHeader(chain consensus.ChainHeaderReader, header, parent *
 	return nil
 }
 
-func (s *Merge) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (s *Merge) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, state *state.IntraBlockState) error {
 	if !misc.IsPoSHeader(block.Header()) {
-		return s.eth1Engine.Seal(chain, block, results, stop)
+		return s.eth1Engine.Seal(chain, block, results, stop, nil)
 	}
 	return nil
 }

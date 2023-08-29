@@ -3,6 +3,7 @@ package clique
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"time"
 
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
@@ -33,7 +34,7 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 
 	// Checkpoint blocks need to enforce zero beneficiary
-	checkpoint := (number % c.config.Epoch) == 0
+	checkpoint := isOnEpochStart(chain.Config(), header.Number)
 	if chain.Config().IsErawan(header.Number.Uint64()) {
 		voteAddr := c.getVoteAddr(header)
 		if checkpoint && voteAddr != (libcommon.Address{}) {
@@ -66,25 +67,37 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 	// Ensure that the extra-data contains a signer list on checkpoint, but none otherwise
 	signersBytes := len(header.Extra) - ExtraVanity - ExtraSeal
+
+	signerBytesLength := length.Addr
+	if isNextBlockPoS(c.ChainConfig, header.Number) {
+		checkpoint = needToUpdateValidatorList(c.ChainConfig, header.Number)
+		if checkpoint {
+			signerBytesLength = length.Addr * 2
+			signersBytes -= contractBytesLength
+		}
+	}
 	if !checkpoint && signersBytes != 0 {
 		return errExtraSigners
 	}
-	if checkpoint && signersBytes%length.Addr != 0 {
+	if checkpoint && signersBytes%signerBytesLength != 0 {
 		return errInvalidCheckpointSigners
 	}
-	// Ensure that the mix digest is zero as we don't have fork protection currently
-	// if header.MixDigest != (libcommon.Hash{}) {
-	// 	return errInvalidMixDigest
-	// }
+
 	// Ensure that the block doesn't contain any uncles which are meaningless in PoA
 	if header.UncleHash != uncleHash {
 		return errInvalidUncleHash
 	}
 	// Ensure that the block's difficulty is meaningful (may not be correct at this point)
 	if number > 0 {
-		if header.Difficulty == nil || (header.Difficulty.Cmp(DiffInTurn) != 0 && header.Difficulty.Cmp(diffNoTurn) != 0) {
-			return errInvalidDifficulty
+		if !chain.Config().IsChaophraya(header.Number.Uint64()) {
+			if header.Difficulty == nil || (!isInturnDifficulty(header.Difficulty) && !isNoturnDifficulty(header.Difficulty)) {
+				return errInvalidDifficulty
+			}
 		}
+	}
+	// Verify that the gas limit is <= 2^63-1
+	if header.GasLimit > params.MaxGasLimit {
+		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
 
 	if header.WithdrawalsHash != nil {
@@ -128,6 +141,10 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	if parent.Time+c.config.Period > header.Time {
 		return errInvalidTimestamp
 	}
+	// Verify that the gasUsed is <= gasLimit
+	if header.GasUsed > header.GasLimit {
+		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+	}
 	if !chain.Config().IsLondon(header.Number.Uint64()) {
 		// Verify BaseFee not present before EIP-1559 fork.
 		if header.BaseFee != nil {
@@ -154,19 +171,24 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	}
 
 	// If the block is a checkpoint block, verify the signer list
-	if number%c.config.Epoch == 0 {
+	if isOnEpochStart(chain.Config(), header.Number) {
 		signers := make([]byte, len(snap.Signers)*length.Addr)
 		for i, signer := range snap.GetSigners() {
 			copy(signers[i*length.Addr:], signer[:])
 		}
 
 		extraSuffix := len(header.Extra) - ExtraSeal
-		if !bytes.Equal(header.Extra[ExtraVanity:extraSuffix], signers) {
-			return errMismatchingCheckpointSigners
+		if !chain.Config().IsChaophraya(header.Number.Uint64()) {
+			if !bytes.Equal(header.Extra[ExtraVanity:extraSuffix], signers) {
+				return errMismatchingCheckpointSigners
+			}
 		}
 	}
 
 	// All basic checks passed, verify the seal and return
+	if chain.Config().IsChaophraya(header.Number.Uint64()) {
+		return c.verifySealPoS(snap, header, parents)
+	}
 	return c.verifySeal(chain, header, snap)
 }
 
@@ -194,7 +216,7 @@ func (c *Clique) Snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 		// at a checkpoint block without a parent (light client CHT), or we have piled
 		// up more headers than allowed to be reorged (chain reinit from a freezer),
 		// consider the checkpoint trusted and snapshot it.
-		if number == 0 || (number%c.config.Epoch == 0 && (len(headers) > params.FullImmutabilityThreshold || chain.GetHeaderByNumber(number-1) == nil)) {
+		if number == 0 || isOnEpochStart(chain.Config(), new(big.Int).SetUint64(number)) && (len(headers) > params.FullImmutabilityThreshold || chain.GetHeaderByNumber(number-1) == nil) {
 			checkpoint := chain.GetHeaderByNumber(number)
 			if checkpoint != nil {
 				hash := checkpoint.Hash()
@@ -241,7 +263,7 @@ func (c *Clique) Snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	c.recents.Add(snap.Hash, snap)
 
 	// If we've generated a new checkpoint snapshot, save to disk
-	if snap.Number%c.snapshotConfig.CheckpointInterval == 0 && len(headers) > 0 {
+	if td := chain.Config().ChaophrayaBlock; (snap.Number%checkpointInterval == 0 || (td != nil && number == chain.Config().ChaophrayaBlock.Uint64())) && len(headers) > 0 {
 		if err = snap.store(c.DB); err != nil {
 			return nil, err
 		}
@@ -283,13 +305,41 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	// Ensure that the difficulty corresponds to the turn-ness of the signer
 	if !c.FakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
-		if inturn && header.Difficulty.Cmp(DiffInTurn) != 0 {
+		if inturn && !isInturnDifficulty(header.Difficulty) {
 			return errWrongDifficulty
 		}
-		if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
+		if !inturn && !isNoturnDifficulty(header.Difficulty) {
 			return errWrongDifficulty
 		}
 	}
 
+	return nil
+}
+
+func (c *Clique) verifySealPoS(snap *Snapshot, header *types.Header, parents []*types.Header) error {
+	// Verifying the genesis block is not supported
+	number := header.Number.Uint64()
+	if number == 0 {
+		return errUnknownBlock
+	}
+	// Resolve the authorization key and check against signers
+	signer, err := ecrecover(header, c.signatures)
+	if err != nil {
+		return err
+	}
+	if _, ok := snap.Signers[signer]; !ok && signer != snap.SystemContracts.OfficialNode {
+		return ErrUnauthorizedSigner
+	}
+
+	// Ensure that the difficulty corresponds to the turn-ness of the signer
+	if !c.FakeDiff {
+		inturn := snap.inturn(header.Number.Uint64(), signer)
+		if inturn && !isInturnDifficulty(header.Difficulty) {
+			return errWrongDifficulty
+		}
+		if !inturn && !isNoturnDifficulty(header.Difficulty) {
+			return errWrongDifficulty
+		}
+	}
 	return nil
 }

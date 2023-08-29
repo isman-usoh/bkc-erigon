@@ -30,6 +30,8 @@ import (
 	"github.com/ledgerwatch/erigon/rpc"
 )
 
+var SystemAddress = libcommon.HexToAddress("0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE")
+
 // ChainHeaderReader defines a small collection of methods needed to access the local
 // blockchain during header verification.
 type ChainHeaderReader interface {
@@ -159,7 +161,7 @@ type EngineWriter interface {
 	//
 	// Note, the method returns immediately and will send the result async. More
 	// than one result may also be returned depending on the consensus algorithm.
-	Seal(chain ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
+	Seal(chain ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, state *state.IntraBlockState) error
 
 	// SealHash returns the hash of a block prior to it being sealed.
 	SealHash(header *types.Header) libcommon.Hash
@@ -184,4 +186,11 @@ type PoW interface {
 
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
+}
+
+type PoS interface {
+	Engine
+
+	IsSystemTransaction(tx *types.Transaction, header *types.Header, chain ChainHeaderReader) (bool, error)
+	IsSystemContract(to *libcommon.Address) bool
 }

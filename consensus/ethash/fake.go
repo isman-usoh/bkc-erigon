@@ -9,6 +9,7 @@ import (
 	"github.com/ledgerwatch/log/v3"
 
 	"github.com/ledgerwatch/erigon/consensus"
+	"github.com/ledgerwatch/erigon/core/state"
 	"github.com/ledgerwatch/erigon/core/types"
 )
 
@@ -113,7 +114,7 @@ func (f *FakeEthash) VerifySeal(_ consensus.ChainHeaderReader, header *types.Hea
 }
 
 // If we're running a fake PoW, simply return a 0 nonce immediately
-func (f *FakeEthash) Seal(_ consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (f *FakeEthash) Seal(_ consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, ibs *state.IntraBlockState) error {
 	header := block.Header()
 	header.Nonce, header.MixDigest = types.BlockNonce{}, libcommon.Hash{}
 

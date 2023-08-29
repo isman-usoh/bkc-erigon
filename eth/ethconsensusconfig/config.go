@@ -16,6 +16,7 @@ import (
 	"github.com/ledgerwatch/erigon/consensus/bor/heimdall/span"
 	"github.com/ledgerwatch/erigon/consensus/bor/heimdallgrpc"
 	"github.com/ledgerwatch/erigon/consensus/clique"
+	cc "github.com/ledgerwatch/erigon/consensus/clique/contract"
 	"github.com/ledgerwatch/erigon/consensus/db"
 	"github.com/ledgerwatch/erigon/consensus/ethash"
 	"github.com/ledgerwatch/erigon/consensus/ethash/ethashcfg"
@@ -56,7 +57,12 @@ func CreateConsensusEngine(chainConfig *chain.Config, config interface{}, notify
 			if consensusCfg.DBPath == "" {
 				consensusCfg.DBPath = filepath.Join(dataDir, "clique", "db")
 			}
-			eng = clique.New(chainConfig, consensusCfg, db.OpenDatabase(consensusCfg.DBPath, consensusCfg.InMemory, readonly), logger)
+			// create contract client and use with clique
+			client, err := cc.New(chainConfig)
+			if err != nil {
+				panic(err)
+			}
+			eng = clique.New(chainConfig, consensusCfg, db.OpenDatabase(consensusCfg.DBPath, consensusCfg.InMemory, readonly), logger, client)
 		}
 	case *chain.AuRaConfig:
 		if chainConfig.Aura != nil {
