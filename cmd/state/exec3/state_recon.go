@@ -231,6 +231,8 @@ type ReconWorker struct {
 	logger      log.Logger
 	genesis     *types.Genesis
 	chain       ChainReader
+	isPoS       bool
+	pos         consensus.PoS
 
 	evm *vm.EVM
 	ibs *state.IntraBlockState
@@ -256,6 +258,7 @@ func NewReconWorker(lock sync.Locker, ctx context.Context, rs *state.ReconState,
 	}
 	rw.chain = NewChainReader(chainConfig, chainTx, blockReader)
 	rw.ibs = state.New(rw.stateReader)
+	rw.pos, rw.isPoS = engine.(consensus.PoS)
 	return rw
 }
 
@@ -328,6 +331,15 @@ func (rw *ReconWorker) runTxTask(txTask *exec22.TxTask) error {
 
 		rw.engine.Initialize(rw.chainConfig, rw.chain, txTask.Header, ibs, txTask.Txs, txTask.Uncles, syscall)
 	} else {
+		if rw.isPoS {
+			if isSystemTx, err := rw.pos.IsSystemTransaction(txTask.Tx, txTask.Header, rw.chain); err != nil {
+				if _, readError := rw.stateReader.ReadError(); !readError {
+					return err
+				}
+			} else if isSystemTx {
+				return nil
+			}
+		}
 		gp := new(core.GasPool).AddGas(txTask.Tx.GetGas())
 		vmConfig := vm.Config{NoReceipts: true, SkipAnalysis: txTask.SkipAnalysis}
 		ibs.SetTxContext(txTask.Tx.Hash(), txTask.BlockHash, txTask.TxIndex)

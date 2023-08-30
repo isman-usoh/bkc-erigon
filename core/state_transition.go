@@ -27,6 +27,7 @@ import (
 	"github.com/ledgerwatch/erigon/common"
 	cmath "github.com/ledgerwatch/erigon/common/math"
 	"github.com/ledgerwatch/erigon/common/u256"
+	"github.com/ledgerwatch/erigon/consensus"
 	"github.com/ledgerwatch/erigon/consensus/misc"
 	"github.com/ledgerwatch/erigon/core/vm"
 	"github.com/ledgerwatch/erigon/core/vm/evmtypes"
@@ -153,6 +154,7 @@ func IntrinsicGas(data []byte, accessList types2.AccessList, isContractCreation 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm vm.VMInterface, msg Message, gp *GasPool) *StateTransition {
 	isBor := evm.ChainConfig().Bor != nil
+
 	return &StateTransition{
 		gp:        gp,
 		evm:       evm,
@@ -358,6 +360,12 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*Executi
 	// 5. there is no overflow when calculating intrinsic gas
 	// 6. caller has enough balance to cover asset transfer for **topmost** call
 
+	// BKC always gave gas bailout due to system transactions that set 2^256/2 gas limit and
+	// for Clique consensus this flag should be always be set
+	if st.evm.ChainConfig().ChaophrayaBlock != nil && st.evm.ChainConfig().IsChaophraya(st.evm.Context().BlockNumber) {
+		gasBailout = true
+	}
+
 	// Check clauses 1-3 and 6, buy gas if everything is correct
 	if err := st.preCheck(gasBailout); err != nil {
 		return nil, err
@@ -438,7 +446,11 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*Executi
 	}
 	amount := new(uint256.Int).SetUint64(st.gasUsed())
 	amount.Mul(amount, effectiveTip) // gasUsed * effectiveTip = how much goes to the block producer (miner, validator)
-	st.state.AddBalance(coinbase, amount)
+	if st.evm.ChainConfig().ChaophrayaBlock != nil && st.evm.ChainConfig().IsChaophraya(st.evm.Context().BlockNumber) {
+		st.state.AddBalance(consensus.SystemAddress, amount)
+	} else {
+		st.state.AddBalance(coinbase, amount)
+	}
 	if !msg.IsFree() && rules.IsLondon && rules.IsEip1559FeeCollector {
 		burntContractAddress := *st.evm.ChainConfig().Eip1559FeeCollector
 		burnAmount := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gasUsed()), st.evm.Context().BaseFee)

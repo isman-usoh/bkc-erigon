@@ -42,6 +42,8 @@ type Worker struct {
 	genesis  *types.Genesis
 	resultCh *exec22.ResultsQueue
 	chain    ChainReader
+	isPoS    bool
+	pos      consensus.PoS
 
 	callTracer  *CallTracer
 	taskGasPool *core.GasPool
@@ -80,6 +82,8 @@ func NewWorker(lock sync.Locker, ctx context.Context, background bool, chainDb k
 	}
 
 	w.ibs = state.New(w.stateReader)
+
+	w.pos, w.isPoS = engine.(consensus.PoS)
 
 	return w
 }
@@ -185,6 +189,15 @@ func (rw *Worker) RunTxTaskNoLock(txTask *exec22.TxTask) {
 		}
 	default:
 		//fmt.Printf("txNum=%d, blockNum=%d, txIndex=%d\n", txTask.TxNum, txTask.BlockNum, txTask.TxIndex)
+		if rw.isPoS {
+			if isSystemTx, err := rw.pos.IsSystemTransaction(txTask.Tx, header, rw.chain); err != nil {
+				panic(err)
+			} else if isSystemTx {
+				//fmt.Printf("System tx\n")
+				return
+			}
+		}
+
 		txHash := txTask.Tx.Hash()
 		rw.taskGasPool.Reset(txTask.Tx.GetGas())
 		rw.callTracer.Reset()

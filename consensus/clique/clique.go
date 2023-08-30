@@ -262,6 +262,7 @@ func New(cfg *chain.Config, snapshotConfig *params.ConsensusSnapshotConfig, cliq
 		proposals:      make(map[libcommon.Address]bool),
 		exitCh:         exitCh,
 		logger:         logger,
+		signer:         types.LatestSigner(cfg),
 	}
 
 	// warm the cache
@@ -284,7 +285,7 @@ func New(cfg *chain.Config, snapshotConfig *params.ConsensusSnapshotConfig, cliq
 	return c
 }
 
-func (c *Clique) IsSystemTransaction(tx types.Transaction, header *types.Header, snap *Snapshot) (bool, error) {
+func (c *Clique) IsSystemTransaction(tx types.Transaction, header *types.Header, chain consensus.ChainHeaderReader) (bool, error) {
 	// deploy a contract
 	if tx.GetTo() == nil {
 		return false, nil
@@ -292,6 +293,11 @@ func (c *Clique) IsSystemTransaction(tx types.Transaction, header *types.Header,
 	sender, err := tx.Sender(*c.signer)
 	if err != nil {
 		return false, errors.New("UnAuthorized transaction")
+	}
+
+	snap, err := c.Snapshot(chain, header.Number.Uint64()-1, header.ParentHash, nil)
+	if err != nil {
+		return false, errGetSnapshotFailed
 	}
 
 	if sender == header.Coinbase && c.isToSystemContract(*tx.GetTo(), snap) && tx.GetPrice().IsZero() {
@@ -471,13 +477,11 @@ func ParseAddressBytes(b []byte) ([]*libcommon.Address, error) {
 	return result, nil
 }
 
-func (c *Clique) splitTxs(txs types.Transactions, header *types.Header, snap *Snapshot) (userTxs types.Transactions, systemTxs types.Transactions, err error) {
-	log.Debug("👷  splitTxs")
+func (c *Clique) splitTxs(txs types.Transactions, header *types.Header, chain consensus.ChainHeaderReader) (userTxs types.Transactions, systemTxs types.Transactions, err error) {
 	userTxs = types.Transactions{}
 	systemTxs = types.Transactions{}
 	for _, tx := range txs {
-		isSystemTx, err2 := c.IsSystemTransaction(tx, header, snap)
-		log.Debug("👷  IsSystemTransaction 👷", "isSystemTx", isSystemTx)
+		isSystemTx, err2 := c.IsSystemTransaction(tx, header, chain)
 		if err2 != nil {
 			err = err2
 			return
@@ -518,12 +522,10 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 
 		log.Debug("txs", "txs", txs)
 
-		userTxs, systemTxs, err := c.splitTxs(txs, header, snap)
+		userTxs, systemTxs, err := c.splitTxs(txs, header, chain)
 		if err != nil {
 			return nil, nil, err
 		}
-
-		log.Debug("👷 👷 👷 sys tx 👷 👷 👷", "len(txs)", len(txs), "systemTxs", systemTxs)
 
 		txs = userTxs
 
@@ -552,7 +554,7 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 		if isSpanCommitmentBlock(c.ChainConfig, header.Number) {
 			_, _, _, err := c.commitSpan(c.val, state, header, len(txs), systemTxs, &header.GasUsed, mining, chain)
 			if err != nil {
-				return nil, nil, errInvalidSpan
+				return nil, nil, err
 			}
 		}
 
@@ -582,9 +584,9 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			return nil, nil, err
 		}
 		log.Debug("distribute successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
-		if len(systemTxs) > 0 {
-			return nil, nil, fmt.Errorf("the length of systemTxs is still %d", len(systemTxs))
-		}
+		// if len(systemTxs) > 0 {
+		// 	return nil, nil, fmt.Errorf("the length of systemTxs is still %d", len(systemTxs))
+		// }
 		// Re-order receipts so that are in right order
 		slices.SortFunc(receipts, func(a, b *types.Receipt) bool { return a.TransactionIndex < b.TransactionIndex })
 		return txs, receipts, nil
@@ -639,7 +641,7 @@ func (c *Clique) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 	txs types.Transactions, receipts types.Receipts, systemTxs types.Transactions,
 	usedGas *uint64, mining bool, snap *Snapshot) (types.Transactions, types.Transactions, types.Receipts, error) {
 	coinbase := header.Coinbase
-	balance := state.GetBalance(consensus.SystemAddress)
+	balance := state.GetBalance(consensus.SystemAddress).Clone()
 	if balance.Cmp(u256.Num0) <= 0 {
 		return txs, systemTxs, receipts, nil
 	}
@@ -651,10 +653,8 @@ func (c *Clique) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 	var tx types.Transaction
 	var receipt *types.Receipt
 	if systemTxs, tx, receipt, err = c.contractClient.DistributeToValidator(snap.SystemContracts.StakeManager, balance, state, header, len(txs), systemTxs, usedGas, mining); err != nil {
-		log.Error("[ERROR]DistributeToValidator", "err", err)
 		return nil, nil, nil, err
 	}
-	log.Debug("distribute!!!!", "systemTxs", systemTxs, "tx", tx, "receipt", receipt, "err", err)
 	txs = append(txs, tx)
 	receipts = append(receipts, receipt)
 	return txs, systemTxs, receipts, nil

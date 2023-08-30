@@ -894,6 +894,7 @@ func stageSenders(db kv.RwDB, ctx context.Context, logger log.Logger) error {
 func stageExec(db kv.RwDB, ctx context.Context, logger log.Logger) error {
 	dirs := datadir.New(datadirCli)
 	engine, vmConfig, sync, _, _ := newSync(ctx, db, nil /* miningConfig */, logger)
+
 	must(sync.SetCurrentStage(stages.Execution))
 	sn, agg := allSnapshots(ctx, db, logger)
 	defer sn.Close()

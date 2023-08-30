@@ -2,8 +2,8 @@ package contract
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"strings"
@@ -21,7 +21,10 @@ import (
 	"github.com/ledgerwatch/erigon/core"
 	"github.com/ledgerwatch/erigon/core/state"
 	"github.com/ledgerwatch/erigon/core/types"
+	"github.com/ledgerwatch/erigon/core/types/accounts"
 	"github.com/ledgerwatch/erigon/core/vm"
+	"github.com/ledgerwatch/erigon/crypto"
+	"github.com/ledgerwatch/erigon/rlp"
 	"github.com/ledgerwatch/log/v3"
 )
 
@@ -114,8 +117,6 @@ func (cc *ContractClient) GetCurrentSpan(header *types.Header, ibs *state.IntraB
 func (cc *ContractClient) DistributeToValidator(contract libcommon.Address, amount *uint256.Int, state *state.IntraBlockState, header *types.Header,
 	txIndex int, systemTxs types.Transactions, usedGas *uint64, mining bool,
 ) (types.Transactions, types.Transaction, *types.Receipt, error) {
-	log.Debug("kuyyyyyyyyyyy1")
-
 	method := "distributeReward"
 	// get packed data
 	data, err := cc.stakeManagerABI.Pack(method)
@@ -123,7 +124,6 @@ func (cc *ContractClient) DistributeToValidator(contract libcommon.Address, amou
 		log.Error("Unable to pack tx for deposit", "error", err)
 		return nil, nil, nil, err
 	}
-	log.Debug("kuyyyyyyyyyyy2")
 	// apply message
 	return cc.applyTransaction(header.Coinbase, contract, amount, data, state, header, txIndex, systemTxs, usedGas, mining)
 }
@@ -279,17 +279,17 @@ func (cc *ContractClient) applyTransaction(from libcommon.Address, to libcommon.
 ) (types.Transactions, types.Transaction, *types.Receipt, error) {
 	nonce := ibs.GetNonce(from)
 	expectedTx := types.Transaction(types.NewTransaction(nonce, to, value, math.MaxUint64/2, u256.Num0, data))
-	expectedHash := expectedTx.SigningHash(cc.config.ChainID)
+	// expectedHash := expectedTx.SigningHash(cc.config.ChainID)
 	if from == cc.val && mining {
-		// signature, err := cc.signFn(from, accounts.MimetypeClique, cc.engine)
-		// if err != nil {
-		// 	return nil, nil, nil, err
-		// }
-		// signer := types.LatestSignerForChainID(cc.config.ChainID)
-		// expectedTx, err = expectedTx.WithSignature(*signer, signature)
-		// if err != nil {
-		// 	return nil, nil, nil, err
-		// }
+		signature, err := cc.signFn(from, accounts.MimetypeClique, CliqueRLP(header))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		signer := types.LatestSignerForChainID(cc.config.ChainID)
+		expectedTx, err = expectedTx.WithSignature(*signer, signature)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	} else {
 		if len(systemTxs) == 0 {
 			return nil, nil, nil, fmt.Errorf("supposed to get a actual transaction, but get none")
@@ -298,25 +298,25 @@ func (cc *ContractClient) applyTransaction(from libcommon.Address, to libcommon.
 			return nil, nil, nil, fmt.Errorf("supposed to get a actual transaction, but get nil")
 		}
 		actualTx := systemTxs[0]
-		actualHash := actualTx.SigningHash(cc.config.ChainID)
-		if !bytes.Equal(actualHash.Bytes(), expectedHash.Bytes()) {
-			return nil, nil, nil, fmt.Errorf("expected system tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s), actual tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s)",
-				expectedHash.String(),
-				expectedTx.GetNonce(),
-				expectedTx.GetTo().String(),
-				expectedTx.GetValue().String(),
-				expectedTx.GetGas(),
-				expectedTx.GetPrice().String(),
-				hex.EncodeToString(expectedTx.GetData()),
-				actualHash.String(),
-				actualTx.GetNonce(),
-				actualTx.GetTo().String(),
-				actualTx.GetValue().String(),
-				actualTx.GetGas(),
-				actualTx.GetPrice().String(),
-				hex.EncodeToString(actualTx.GetData()),
-			)
-		}
+		// actualHash := actualTx.SigningHash(cc.config.ChainID)
+		// if !bytes.Equal(actualHash.Bytes(), expectedHash.Bytes()) {
+		// 	return nil, nil, nil, fmt.Errorf("expected system tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s), actual tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s)",
+		// 		expectedHash.String(),
+		// 		expectedTx.GetNonce(),
+		// 		expectedTx.GetTo().String(),
+		// 		expectedTx.GetValue().String(),
+		// 		expectedTx.GetGas(),
+		// 		expectedTx.GetPrice().String(),
+		// 		hex.EncodeToString(expectedTx.GetData()),
+		// 		actualHash.String(),
+		// 		actualTx.GetNonce(),
+		// 		actualTx.GetTo().String(),
+		// 		actualTx.GetValue().String(),
+		// 		actualTx.GetGas(),
+		// 		actualTx.GetPrice().String(),
+		// 		hex.EncodeToString(actualTx.GetData()),
+		// 	)
+		// }
 		expectedTx = actualTx
 		// move to next
 		systemTxs = systemTxs[1:]
@@ -383,4 +383,43 @@ func (cc *ContractClient) systemCall(from, contract libcommon.Address, data []by
 		return 0, nil, err
 	}
 	return msg.Gas() - leftOverGas, ret, nil
+}
+
+// CliqueRLP returns the rlp bytes which needs to be signed for the proof-of-authority
+// sealing. The RLP to sign consists of the entire header apart from the 65 byte signature
+// contained at the end of the extra data.
+//
+// Note, the method requires the extra data to be at least 65 bytes, otherwise it
+// panics. This is done to avoid accidentally using both forms (signature present
+// or not), which could be abused to produce different hashes for the same header.
+func CliqueRLP(header *types.Header) []byte {
+	b := new(bytes.Buffer)
+	encodeSigHeader(b, header)
+	return b.Bytes()
+}
+
+func encodeSigHeader(w io.Writer, header *types.Header) {
+	enc := []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Difficulty,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[:len(header.Extra)-crypto.SignatureLength], // Yes, this will panic if extra is too short
+		header.MixDigest,
+		header.Nonce,
+	}
+	if header.BaseFee != nil {
+		enc = append(enc, header.BaseFee)
+	}
+	if err := rlp.Encode(w, enc); err != nil {
+		panic("can't encode: " + err.Error())
+	}
 }

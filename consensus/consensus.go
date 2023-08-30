@@ -191,6 +191,6 @@ type PoW interface {
 type PoS interface {
 	Engine
 
-	IsSystemTransaction(tx *types.Transaction, header *types.Header, chain ChainHeaderReader) (bool, error)
-	IsSystemContract(to *libcommon.Address) bool
+	IsSystemTransaction(tx types.Transaction, header *types.Header, chain ChainHeaderReader) (bool, error)
+	// IsToSystemContract(to *libcommon.Address) bool
 }
