@@ -176,16 +176,13 @@ func (cc *ContractClient) IsSlashed(contract libcommon.Address, signer libcommon
 	return out, nil
 }
 
-func (cc *ContractClient) GetCurrentValidators(header *types.Header, ibs *state.IntraBlockState) ([]*ctypes.Validator, *ctypes.SystemContracts, error) {
-	// block
-	number := header.Number
-
+func (cc *ContractClient) GetCurrentValidators(header *types.Header, ibs *state.IntraBlockState, blockNumber *big.Int) ([]*ctypes.Validator, *ctypes.SystemContracts, error) {
 	method := "getValidators"
 
 	// get packed data
 	data, err := cc.validatorSetABI.Pack(
 		method,
-		number,
+		blockNumber,
 	)
 	if err != nil {
 		log.Error("Unable to pack tx for getValidators", "error", err)

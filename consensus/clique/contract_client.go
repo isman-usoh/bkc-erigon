@@ -43,7 +43,7 @@ type ContractClient interface {
 	IsSlashed(contract libcommon.Address, signer libcommon.Address, span *big.Int, header *types.Header, ibs *state.IntraBlockState) (bool, error)
 
 	// Call for  current commited validators
-	GetCurrentValidators(header *types.Header, ibs *state.IntraBlockState) ([]*ctypes.Validator, *ctypes.SystemContracts, error)
+	GetCurrentValidators(header *types.Header, ibs *state.IntraBlockState, blockNumber *big.Int) ([]*ctypes.Validator, *ctypes.SystemContracts, error)
 
 	// Call for eligible validators
 	GetEligibleValidators(header *types.Header, ibs *state.IntraBlockState) ([]*ctypes.Validator, error)

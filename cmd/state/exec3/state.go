@@ -193,7 +193,6 @@ func (rw *Worker) RunTxTaskNoLock(txTask *exec22.TxTask) {
 			if isSystemTx, err := rw.pos.IsSystemTransaction(txTask.Tx, header, rw.chain); err != nil {
 				panic(err)
 			} else if isSystemTx {
-				//fmt.Printf("System tx\n")
 				return
 			}
 		}

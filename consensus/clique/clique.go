@@ -419,7 +419,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	}
 	if number > 0 && isNextBlockPoS(c.ChainConfig, header.Number) {
 		if needToUpdateValidatorList(c.ChainConfig, header.Number) {
-			newValidators, systemContracts, err := c.contractClient.GetCurrentValidators(header, state)
+			newValidators, systemContracts, err := c.contractClient.GetCurrentValidators(header, state, new(big.Int).SetUint64(number+1))
 			if err != nil {
 				log.Error("GetCurrentValidators", "err", err.Error())
 				return errors.New("unknown validators")
@@ -488,7 +488,6 @@ func (c *Clique) splitTxs(txs types.Transactions, header *types.Header, chain co
 		}
 		if isSystemTx {
 			systemTxs = append(systemTxs, tx)
-			log.Debug("👷 👷  Get sys tx 👷 👷", "systemTxs", systemTxs)
 		} else {
 			userTxs = append(userTxs, tx)
 		}
@@ -512,6 +511,11 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 		if chain.Config().ChaophrayaBlock.Cmp(header.Number) == 0 {
 			log.Info("⭐️ POS Started", "number", header.Number)
 		}
+		userTxs, systemTxs, err := c.splitTxs(txs, header, chain)
+		if err != nil {
+			return nil, nil, err
+		}
+		txs = userTxs
 
 		number := header.Number.Uint64()
 
@@ -520,20 +524,13 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			return nil, nil, err
 		}
 
-		userTxs, systemTxs, err := c.splitTxs(txs, header, chain)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		txs = userTxs
-
 		blockSigner, _ := ecrecover(header, c.signatures)
 		if isNoturnDifficulty(header.Difficulty) && blockSigner != snap.SystemContracts.OfficialNode {
 			return nil, nil, errInvalidDifficulty
 		}
 
 		if needToUpdateValidatorList(c.ChainConfig, header.Number) {
-			newValidators, _, err := c.contractClient.GetCurrentValidators(header, state)
+			newValidators, _, err := c.contractClient.GetCurrentValidators(header, state, new(big.Int).SetUint64(number+1))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -550,9 +547,14 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 		}
 
 		if isSpanCommitmentBlock(c.ChainConfig, header.Number) {
-			_, _, _, err := c.commitSpan(c.val, state, header, len(txs), systemTxs, &header.GasUsed, mining, chain)
-			if err != nil {
+			var tx types.Transaction
+			var receipt *types.Receipt
+			if systemTxs, tx, receipt, err = c.commitSpan(c.val, state, header, len(txs), systemTxs, &header.GasUsed, mining, chain); err != nil {
 				return nil, nil, err
+			} else {
+				txs = append(txs, tx)
+				receipts = append(receipts, receipt)
+				log.Debug("slash successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
 			}
 		}
 
@@ -659,7 +661,8 @@ func (c *Clique) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 }
 
 func (c *Clique) commitSpan(val libcommon.Address, state *state.IntraBlockState, header *types.Header,
-	txIndex int, systemTxs types.Transactions, usedGas *uint64, mining bool, chain consensus.ChainHeaderReader) (types.Transactions, types.Transaction, *types.Receipt, error) {
+	txIndex int, systemTxs types.Transactions, usedGas *uint64, mining bool,
+	chain consensus.ChainHeaderReader) (types.Transactions, types.Transaction, *types.Receipt, error) {
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 
 	confirmBlockNr := chain.GetHeaderByNumber(parent.Number.Uint64() - 5)
