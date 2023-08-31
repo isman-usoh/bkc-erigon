@@ -520,8 +520,6 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			return nil, nil, err
 		}
 
-		log.Debug("txs", "txs", txs)
-
 		userTxs, systemTxs, err := c.splitTxs(txs, header, chain)
 		if err != nil {
 			return nil, nil, err
@@ -584,9 +582,9 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			return nil, nil, err
 		}
 		log.Debug("distribute successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
-		// if len(systemTxs) > 0 {
-		// 	return nil, nil, fmt.Errorf("the length of systemTxs is still %d", len(systemTxs))
-		// }
+		if len(systemTxs) > 0 {
+			return nil, nil, fmt.Errorf("the length of systemTxs is still %d", len(systemTxs))
+		}
 		// Re-order receipts so that are in right order
 		slices.SortFunc(receipts, func(a, b *types.Receipt) bool { return a.TransactionIndex < b.TransactionIndex })
 		return txs, receipts, nil
@@ -741,7 +739,6 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	delay := time.Unix(int64(header.Time), 0).Sub(time.Now()) // nolint: gosimple
 	// Only be used in PoS
 	slashed := false
-	// TODO: Implement the backup plan in case all validator nodes are down,
 	// We propose the official validator node which operate by Bitkub Blockchain Technology Co., Ltd.
 	// 1. The super node will be the right validator node to seal the block incase of the inturn validator node does not propagate the block in time.
 	// The timing of delay, the official will operate to sealing the block and propagate after 1 sec of delay.

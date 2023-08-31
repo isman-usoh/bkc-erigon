@@ -2,6 +2,7 @@ package contract
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math"
@@ -279,7 +280,7 @@ func (cc *ContractClient) applyTransaction(from libcommon.Address, to libcommon.
 ) (types.Transactions, types.Transaction, *types.Receipt, error) {
 	nonce := ibs.GetNonce(from)
 	expectedTx := types.Transaction(types.NewTransaction(nonce, to, value, math.MaxUint64/2, u256.Num0, data))
-	// expectedHash := expectedTx.SigningHash(cc.config.ChainID)
+	expectedHash := expectedTx.SigningHash(cc.config.ChainID)
 	if from == cc.val && mining {
 		signature, err := cc.signFn(from, accounts.MimetypeClique, CliqueRLP(header))
 		if err != nil {
@@ -298,25 +299,25 @@ func (cc *ContractClient) applyTransaction(from libcommon.Address, to libcommon.
 			return nil, nil, nil, fmt.Errorf("supposed to get a actual transaction, but get nil")
 		}
 		actualTx := systemTxs[0]
-		// actualHash := actualTx.SigningHash(cc.config.ChainID)
-		// if !bytes.Equal(actualHash.Bytes(), expectedHash.Bytes()) {
-		// 	return nil, nil, nil, fmt.Errorf("expected system tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s), actual tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s)",
-		// 		expectedHash.String(),
-		// 		expectedTx.GetNonce(),
-		// 		expectedTx.GetTo().String(),
-		// 		expectedTx.GetValue().String(),
-		// 		expectedTx.GetGas(),
-		// 		expectedTx.GetPrice().String(),
-		// 		hex.EncodeToString(expectedTx.GetData()),
-		// 		actualHash.String(),
-		// 		actualTx.GetNonce(),
-		// 		actualTx.GetTo().String(),
-		// 		actualTx.GetValue().String(),
-		// 		actualTx.GetGas(),
-		// 		actualTx.GetPrice().String(),
-		// 		hex.EncodeToString(actualTx.GetData()),
-		// 	)
-		// }
+		actualHash := actualTx.SigningHash(cc.config.ChainID)
+		if !bytes.Equal(actualHash.Bytes(), expectedHash.Bytes()) {
+			return nil, nil, nil, fmt.Errorf("expected system tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s), actual tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s)",
+				expectedHash.String(),
+				expectedTx.GetNonce(),
+				expectedTx.GetTo().String(),
+				expectedTx.GetValue().String(),
+				expectedTx.GetGas(),
+				expectedTx.GetPrice().String(),
+				hex.EncodeToString(expectedTx.GetData()),
+				actualHash.String(),
+				actualTx.GetNonce(),
+				actualTx.GetTo().String(),
+				actualTx.GetValue().String(),
+				actualTx.GetGas(),
+				actualTx.GetPrice().String(),
+				hex.EncodeToString(actualTx.GetData()),
+			)
+		}
 		expectedTx = actualTx
 		// move to next
 		systemTxs = systemTxs[1:]
