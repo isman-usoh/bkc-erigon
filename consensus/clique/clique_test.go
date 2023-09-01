@@ -47,8 +47,9 @@ func TestReimportMirroredState(t *testing.T) {
 		cliqueDB = memdb.NewTestDB(t)
 		key, _   = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr     = crypto.PubkeyToAddress(key.PublicKey)
-		engine   = clique.New(params.AllCliqueProtocolChanges, params.CliqueSnapshot, cliqueDB, log.New())
-		signer   = types.LatestSignerForChainID(nil)
+		engine   = clique.New(params.AllCliqueProtocolChanges, params.CliqueSnapshot, cliqueDB, log.New(), nil)
+
+		signer = types.LatestSignerForChainID(nil)
 	)
 	genspec := &types.Genesis{
 		ExtraData: make([]byte, clique.ExtraVanity+length.Addr+clique.ExtraSeal),
@@ -58,6 +59,7 @@ func TestReimportMirroredState(t *testing.T) {
 		Config: params.AllCliqueProtocolChanges,
 	}
 	copy(genspec.ExtraData[clique.ExtraVanity:], addr[:])
+
 	m := stages.MockWithGenesisEngine(t, genspec, engine, false)
 
 	// Generate a batch of blocks, each properly signed

@@ -61,7 +61,7 @@ func TestRemoteNotify(t *testing.T) {
 	header := &types.Header{Number: big.NewInt(1), Difficulty: big.NewInt(100)}
 	block := types.NewBlockWithHeader(header)
 
-	if err := ethash.Seal(nil, block, nil, nil); err != nil {
+	if err := ethash.Seal(nil, block, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -111,7 +111,7 @@ func TestRemoteNotifyFull(t *testing.T) {
 	header := &types.Header{Number: big.NewInt(1), Difficulty: big.NewInt(100)}
 	block := types.NewBlockWithHeader(header)
 
-	if err := ethash.Seal(nil, block, nil, nil); err != nil {
+	if err := ethash.Seal(nil, block, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -161,7 +161,7 @@ func TestRemoteMultiNotify(t *testing.T) {
 	for i := 0; i < cap(sink); i++ {
 		header := &types.Header{Number: big.NewInt(int64(i)), Difficulty: big.NewInt(100)}
 		block := types.NewBlockWithHeader(header)
-		err := ethash.Seal(nil, block, results, nil)
+		err := ethash.Seal(nil, block, results, nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -214,7 +214,7 @@ func TestRemoteMultiNotifyFull(t *testing.T) {
 	for i := 0; i < cap(sink); i++ {
 		header := &types.Header{Number: big.NewInt(int64(i)), Difficulty: big.NewInt(100)}
 		block := types.NewBlockWithHeader(header)
-		err := ethash.Seal(nil, block, results, nil)
+		err := ethash.Seal(nil, block, results, nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -283,7 +283,7 @@ func TestStaleSubmission(t *testing.T) {
 
 	for id, c := range testcases {
 		for _, h := range c.headers {
-			err := ethash.Seal(nil, types.NewBlockWithHeader(h), results, nil)
+			err := ethash.Seal(nil, types.NewBlockWithHeader(h), results, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -554,7 +554,6 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			} else {
 				txs = append(txs, tx)
 				receipts = append(receipts, receipt)
-				log.Debug("slash successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
 			}
 		}
 
@@ -575,7 +574,6 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			} else {
 				txs = append(txs, tx)
 				receipts = append(receipts, receipt)
-				log.Debug("slash successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
 			}
 		}
 
@@ -583,7 +581,6 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			log.Error("distributeIncoming fail", "block hash", header.Hash(), "error", err, "systemTxs", len(systemTxs))
 			return nil, nil, err
 		}
-		log.Debug("distribute successful", "txns", txs.Len(), "receipts", len(receipts), "gasUsed", header.GasUsed)
 		if len(systemTxs) > 0 {
 			return nil, nil, fmt.Errorf("the length of systemTxs is still %d", len(systemTxs))
 		}

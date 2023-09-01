@@ -423,8 +423,7 @@ func TestClique(t *testing.T) {
 			}
 
 			cliqueDB := memdb.NewTestDB(t)
-
-			engine := clique.New(&config, params.CliqueSnapshot, cliqueDB, log.New())
+			engine := clique.New(&config, params.CliqueSnapshot, cliqueDB, log.New(), nil)
 			engine.FakeDiff = true
 			// Create a pristine blockchain with the genesis injected
 			m := stages.MockWithGenesisEngine(t, genesis, engine, false)
