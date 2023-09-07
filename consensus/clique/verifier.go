@@ -327,8 +327,14 @@ func (c *Clique) verifySealPoS(snap *Snapshot, header *types.Header, parents []*
 	if err != nil {
 		return err
 	}
+
 	if _, ok := snap.Signers[signer]; !ok && signer != snap.SystemContracts.OfficialNode {
 		return ErrUnauthorizedSigner
+	}
+
+	blockSigner, _ := ecrecover(header, c.signatures)
+	if isNoturnDifficulty(header.Difficulty) && blockSigner != snap.SystemContracts.OfficialNode {
+		return errInvalidDifficulty
 	}
 
 	// Ensure that the difficulty corresponds to the turn-ness of the signer

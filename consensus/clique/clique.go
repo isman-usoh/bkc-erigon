@@ -222,8 +222,7 @@ type Clique struct {
 
 	val    libcommon.Address // Ethereum address of the signing key
 	signFn ctypes.SignerFn   // Signer function to authorize hashes with
-
-	lock sync.RWMutex // Protects the signer and proposals fields
+	lock   sync.RWMutex      // Protects the signer and proposals fields
 
 	// The fields below are for testing only
 	FakeDiff bool // Skip difficulty verifications
@@ -524,11 +523,6 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			return nil, nil, err
 		}
 
-		blockSigner, _ := ecrecover(header, c.signatures)
-		if isNoturnDifficulty(header.Difficulty) && blockSigner != snap.SystemContracts.OfficialNode {
-			return nil, nil, errInvalidDifficulty
-		}
-
 		if needToUpdateValidatorList(c.ChainConfig, header.Number) {
 			newValidators, _, err := c.contractClient.GetCurrentValidators(header, state, new(big.Int).SetUint64(number+1))
 			if err != nil {
@@ -569,11 +563,15 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			log.Debug("🗡️  Slashing validator", "signer", inturnSigner, "diff", header.Difficulty, "number", header.Number)
 			var tx types.Transaction
 			var receipt *types.Receipt
-			if systemTxs, tx, receipt, err = c.slash(inturnSigner, state, header, len(txs), systemTxs, &header.GasUsed, mining, snap); err != nil {
-				log.Error("slash validator failed", "block hash", header.Hash(), "address", inturnSigner, "error", err)
-			} else {
-				txs = append(txs, tx)
-				receipts = append(receipts, receipt)
+			if len(systemTxs) != 0 { // to prevent slashing tx when it should not
+				if systemTxs, tx, receipt, err = c.slash(inturnSigner, state, header, len(txs), systemTxs, &header.GasUsed, mining, snap); err != nil {
+					log.Error("slash validator failed", "block hash", header.Hash(), "address", inturnSigner, "error", err)
+				} else {
+					if tx != nil { // for the validator was not slashed
+						txs = append(txs, tx)
+						receipts = append(receipts, receipt)
+					}
+				}
 			}
 		}
 
@@ -614,20 +612,22 @@ func (c *Clique) slash(spoiledVal libcommon.Address, state *state.IntraBlockStat
 ) (types.Transactions, types.Transaction, *types.Receipt, error) {
 	currentSpan, err := c.contractClient.GetCurrentSpan(header, state)
 	if err != nil {
-		return nil, nil, nil, err
+		return systemTxs, nil, nil, err
 	}
-	if isSpanFirstBlock(c.ChainConfig, header.Number) {
+
+	if isSpanFirstBlock(c.ChainConfig, new(big.Int).Add(header.Number, libcommon.Big2)) {
 		currentSpan = new(big.Int).Add(currentSpan, libcommon.Big1)
 	}
 
 	slashed, err := c.contractClient.IsSlashed(snap.SystemContracts.SlashManager, spoiledVal, currentSpan, header, state)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return systemTxs, nil, nil, err
 	}
+
 	// ignore slash
 	if slashed {
-		return nil, nil, nil, nil
+		return systemTxs, nil, nil, nil
 	}
 
 	return c.contractClient.Slash(snap.SystemContracts.SlashManager, spoiledVal, state, header, txIndex, systemTxs, usedGas, mining, currentSpan)
@@ -645,12 +645,12 @@ func (c *Clique) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 	state.SetBalance(consensus.SystemAddress, u256.Num0)
 	state.AddBalance(coinbase, balance)
 
-	log.Debug("distribute to validator contract", "block hash", header.Hash(), "amount", balance)
+	log.Debug("🪙 distribute to validator", "block hash", header.Hash(), "amount", balance)
 	var err error
 	var tx types.Transaction
 	var receipt *types.Receipt
 	if systemTxs, tx, receipt, err = c.contractClient.DistributeToValidator(snap.SystemContracts.StakeManager, balance, state, header, len(txs), systemTxs, usedGas, mining); err != nil {
-		return nil, nil, nil, err
+		return nil, systemTxs, nil, err
 	}
 	txs = append(txs, tx)
 	receipts = append(receipts, receipt)

@@ -9,6 +9,7 @@ import (
 	"github.com/ledgerwatch/log/v3"
 
 	"github.com/ledgerwatch/erigon/consensus"
+	"github.com/ledgerwatch/erigon/core/state"
 	"github.com/ledgerwatch/erigon/core/types"
 )
 
@@ -85,6 +86,10 @@ func SpawnMiningFinishStage(s *StageState, tx kv.RwTx, cfg MiningFinishCfg, quit
 			"difficulty", block.Difficulty(),
 		)
 	}
+
+	stateReader := state.NewPlainStateReader(tx)
+	ibs := state.New(stateReader)
+
 	// interrupt aborts the in-flight sealing task.
 	select {
 	case cfg.sealCancel <- struct{}{}:
@@ -92,7 +97,7 @@ func SpawnMiningFinishStage(s *StageState, tx kv.RwTx, cfg MiningFinishCfg, quit
 		logger.Trace("None in-flight sealing task.")
 	}
 	chain := ChainReader{Cfg: cfg.chainConfig, Db: tx, BlockReader: cfg.blockReader}
-	if err := cfg.engine.Seal(chain, block, cfg.miningState.MiningResultCh, cfg.sealCancel, nil); err != nil {
+	if err := cfg.engine.Seal(chain, block, cfg.miningState.MiningResultCh, cfg.sealCancel, ibs); err != nil {
 		logger.Warn("Block sealing failed", "err", err)
 	}
 

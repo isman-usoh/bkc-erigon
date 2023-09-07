@@ -61,11 +61,6 @@ func New(config *chain.Config) (*ContractClient, error) {
 	}, nil
 }
 
-// // This function should be called in consensus intialization (clique.New)
-// func (cc *ContractClient) SetSigner(signer types.Signer) {
-// 	cc.signer = signer
-// }
-
 // Initialize function, should be called after consensus engine are selected
 // and account has been authorized
 func (cc *ContractClient) Inject(val libcommon.Address, signFn ctypes.SignerFn, engine consensus.Engine) {

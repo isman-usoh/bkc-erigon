@@ -161,7 +161,6 @@ func executeBlock(
 	var receipts types.Receipts
 	var stateSyncReceipt *types.Receipt
 	var execRs *core.EphemeralExecResult
-	// pos, isPoS := cfg.engine.(consensus.PoS)
 	getHashFn := core.GetHashFn(block.Header(), getHeader)
 
 	if cfg.chainConfig.IsChaophraya(block.Number().Uint64()) {
