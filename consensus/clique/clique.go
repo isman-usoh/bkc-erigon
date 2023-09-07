@@ -563,7 +563,9 @@ func (c *Clique) finalize(header *types.Header, state *state.IntraBlockState, tx
 			log.Debug("🗡️  Slashing validator", "signer", inturnSigner, "diff", header.Difficulty, "number", header.Number)
 			var tx types.Transaction
 			var receipt *types.Receipt
-			if len(systemTxs) != 0 { // to prevent slashing tx when it should not
+
+			if len(systemTxs) != 0 && bytes.Equal(systemTxs[0].GetTo().Bytes(), snap.SystemContracts.SlashManager.Bytes()) { // to prevent slashing tx when it should not
+				log.Debug("Finalize Slashinggggg2", "to", systemTxs[0].GetTo(), "SlashManager", &snap.SystemContracts.SlashManager)
 				if systemTxs, tx, receipt, err = c.slash(inturnSigner, state, header, len(txs), systemTxs, &header.GasUsed, mining, snap); err != nil {
 					log.Error("slash validator failed", "block hash", header.Hash(), "address", inturnSigner, "error", err)
 				} else {
