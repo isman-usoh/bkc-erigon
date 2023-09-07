@@ -55,7 +55,7 @@ type Tally struct {
 
 // Snapshot is the state of the authorization voting at a given point in time.
 type Snapshot struct {
-	config *chain.CliqueConfig // Consensus engine parameters to fine tune behavior
+	config *chain.Config
 
 	Number  uint64                         `json:"number"`  // Block number where the snapshot was created
 	Hash    libcommon.Hash                 `json:"hash"`    // Block hash where the snapshot was created
@@ -75,7 +75,7 @@ func (s SignersAscending) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // newSnapshot creates a new snapshot with the specified startup parameters. This
 // method does not initialize the set of recent signers, so only ever use if for
 // the genesis block.
-func newSnapshot(config *chain.CliqueConfig, number uint64, hash libcommon.Hash, signers []libcommon.Address) *Snapshot {
+func newSnapshot(config *chain.Config, number uint64, hash libcommon.Hash, signers []libcommon.Address) *Snapshot {
 	snap := &Snapshot{
 		config:  config,
 		Number:  number,
@@ -93,7 +93,7 @@ func newSnapshot(config *chain.CliqueConfig, number uint64, hash libcommon.Hash,
 }
 
 // loadSnapshot loads an existing snapshot from the database.
-func loadSnapshot(config *chain.CliqueConfig, db kv.RwDB, num uint64, hash libcommon.Hash) (*Snapshot, error) {
+func loadSnapshot(config *chain.Config, db kv.RwDB, num uint64, hash libcommon.Hash) (*Snapshot, error) {
 	tx, err := db.BeginRo(context.Background())
 	if err != nil {
 		return nil, err
@@ -220,7 +220,7 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
-		if number%s.config.Epoch == 0 {
+		if number%s.config.Clique.Epoch == 0 {
 			snap.Votes = nil
 			snap.Tally = make(map[libcommon.Address]Tally)
 		}
@@ -244,8 +244,9 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 		snap.Recents[number] = signer
 
 		// Header authorized, discard any previous votes from the signer
+		voteAddr := s.getVoteAddr(header)
 		for i, vote := range snap.Votes {
-			if vote.Signer == signer && vote.Address == header.Coinbase {
+			if vote.Signer == signer && vote.Address == voteAddr {
 				// Uncast the vote from the cached tally
 				snap.uncast(vote.Address, vote.Authorize)
 
@@ -264,20 +265,20 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 		default:
 			return nil, errInvalidVote
 		}
-		if snap.cast(header.Coinbase, authorize) {
+		if snap.cast(voteAddr, authorize) {
 			snap.Votes = append(snap.Votes, &Vote{
 				Signer:    signer,
 				Block:     number,
-				Address:   header.Coinbase,
+				Address:   voteAddr,
 				Authorize: authorize,
 			})
 		}
 		// If the vote passed, update the list of signers
-		if tally := snap.Tally[header.Coinbase]; tally.Votes > len(snap.Signers)/2 {
+		if tally := snap.Tally[voteAddr]; tally.Votes > len(snap.Signers)/2 {
 			if tally.Authorize {
-				snap.Signers[header.Coinbase] = struct{}{}
+				snap.Signers[voteAddr] = struct{}{}
 			} else {
-				delete(snap.Signers, header.Coinbase)
+				delete(snap.Signers, voteAddr)
 
 				// Signer list shrunk, delete any leftover recent caches
 				if limit := uint64(len(snap.Signers)/2 + 1); number >= limit {
@@ -285,7 +286,7 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 				}
 				// Discard any previous votes the deauthorized signer cast
 				for i := 0; i < len(snap.Votes); i++ {
-					if snap.Votes[i].Signer == header.Coinbase {
+					if snap.Votes[i].Signer == voteAddr {
 						// Uncast the vote from the cached tally
 						snap.uncast(snap.Votes[i].Address, snap.Votes[i].Authorize)
 
@@ -298,12 +299,12 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 			}
 			// Discard any previous votes around the just changed account
 			for i := 0; i < len(snap.Votes); i++ {
-				if snap.Votes[i].Address == header.Coinbase {
+				if snap.Votes[i].Address == voteAddr {
 					snap.Votes = append(snap.Votes[:i], snap.Votes[i+1:]...)
 					i--
 				}
 			}
-			delete(snap.Tally, header.Coinbase)
+			delete(snap.Tally, voteAddr)
 		}
 		// If we're taking too much time (ecrecover), notify the user once a while
 		if time.Since(logged) > 8*time.Second {
@@ -318,6 +319,14 @@ func (s *Snapshot) apply(sigcache *lru.ARCCache[libcommon.Hash, libcommon.Addres
 	snap.Hash = headers[len(headers)-1].Hash()
 
 	return snap, nil
+}
+
+func (s *Snapshot) getVoteAddr(header *types.Header) libcommon.Address {
+	if s.config.IsErawan(header.Number.Uint64()) {
+		return libcommon.BytesToAddress(header.MixDigest[12:])
+	} else {
+		return header.Coinbase
+	}
 }
 
 // copy creates a deep copy of the snapshot, though not the individual votes.

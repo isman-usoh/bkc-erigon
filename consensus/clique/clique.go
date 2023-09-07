@@ -298,8 +298,10 @@ func (c *Clique) VerifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header, state *state.IntraBlockState) error {
 
 	// If the block isn't a checkpoint, cast a random vote (good enough for now)
-	header.Coinbase = libcommon.Address{}
-	header.Nonce = types.BlockNonce{}
+	if !chain.Config().IsErawan(header.Number.Uint64()) {
+		header.Coinbase = libcommon.Address{}
+		header.Nonce = types.BlockNonce{}
+	}
 
 	number := header.Number.Uint64()
 	// Assemble the voting snapshot to check which votes make sense
@@ -318,8 +320,13 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		}
 		// If there's pending proposals, cast a vote on them
 		if len(addresses) > 0 {
-			header.Coinbase = addresses[rand.Intn(len(addresses))] // nolint: gosec
-			if c.proposals[header.Coinbase] {
+			addr := addresses[rand.Intn(len(addresses))]
+			if chain.Config().IsErawan(header.Number.Uint64()) {
+				header.MixDigest = addr.Hash()
+			} else {
+				header.Coinbase = addr
+			}
+			if c.proposals[addr] {
 				copy(header.Nonce[:], NonceAuthVote)
 			} else {
 				copy(header.Nonce[:], nonceDropVote)
@@ -348,7 +355,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Extra = append(header.Extra, make([]byte, ExtraSeal)...)
 
 	// Mix digest is reserved for now, set to empty
-	header.MixDigest = libcommon.Hash{}
+	// header.MixDigest = libcommon.Hash{}
 
 	// Ensure the timestamp has the correct delay
 	parent := chain.GetHeader(header.ParentHash, number-1)
@@ -631,7 +638,7 @@ func (c *Clique) snapshots(latest uint64, total int) ([]*Snapshot, error) {
 			return nil, err
 		}
 
-		s.config = c.config
+		s.config = c.ChainConfig
 
 		res = append(res, s)
 

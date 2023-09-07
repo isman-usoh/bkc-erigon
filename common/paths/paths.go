@@ -96,6 +96,8 @@ func DataDirForNetwork(datadir string, network string) string {
 		return networkDataDirCheckingLegacy(datadir, "gnosis")
 	case networkname.ChiadoChainName:
 		return networkDataDirCheckingLegacy(datadir, "chiado")
+	case networkname.BitkubChainName:
+		return networkDataDirCheckingLegacy(datadir, "bitkub-devnet")
 
 	default:
 		return datadir

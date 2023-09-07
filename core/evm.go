@@ -23,6 +23,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/ledgerwatch/erigon-lib/chain"
+	"github.com/ledgerwatch/erigon-lib/common"
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 
 	"github.com/ledgerwatch/erigon/consensus"
@@ -32,11 +33,15 @@ import (
 )
 
 // NewEVMBlockContext creates a new context for use in the EVM.
-func NewEVMBlockContext(header *types.Header, blockHashFunc func(n uint64) libcommon.Hash, engine consensus.EngineReader, author *libcommon.Address) evmtypes.BlockContext {
+func NewEVMBlockContext(header *types.Header, chain *chain.Config, blockHashFunc func(n uint64) libcommon.Hash, engine consensus.EngineReader, author *libcommon.Address) evmtypes.BlockContext {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
-	var beneficiary libcommon.Address
+	var beneficiary common.Address
 	if author == nil {
-		beneficiary, _ = engine.Author(header) // Ignore error, we're past header validation
+		if chain.IsErawan(header.Number.Uint64()) {
+			beneficiary = header.Coinbase
+		} else {
+			beneficiary, _ = engine.Author(header)
+		}
 	} else {
 		beneficiary = *author
 	}
@@ -55,7 +60,7 @@ func NewEVMBlockContext(header *types.Header, blockHashFunc func(n uint64) libco
 	}
 
 	var transferFunc evmtypes.TransferFunc
-	if engine != nil && engine.Type() == chain.BorConsensus {
+	if engine != nil && engine.Type() == "bor" {
 		transferFunc = BorTransfer
 	} else {
 		transferFunc = Transfer

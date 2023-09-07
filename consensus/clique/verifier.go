@@ -34,8 +34,18 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 
 	// Checkpoint blocks need to enforce zero beneficiary
 	checkpoint := (number % c.config.Epoch) == 0
-	if checkpoint && header.Coinbase != (libcommon.Address{}) {
-		return errInvalidCheckpointBeneficiary
+	if chain.Config().IsErawan(header.Number.Uint64()) {
+		voteAddr := c.getVoteAddr(header)
+		if checkpoint && voteAddr != (libcommon.Address{}) {
+			return errInvalidCheckpointBeneficiary
+		}
+	} else {
+		if checkpoint && header.Coinbase != (libcommon.Address{}) {
+			return errInvalidCheckpointBeneficiary
+		}
+		if header.MixDigest != (libcommon.Hash{}) {
+			return errInvalidMixDigest
+		}
 	}
 
 	// Nonces must be 0x00..0 or 0xff..f, zeroes enforced on checkpoints
@@ -63,9 +73,9 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 		return errInvalidCheckpointSigners
 	}
 	// Ensure that the mix digest is zero as we don't have fork protection currently
-	if header.MixDigest != (libcommon.Hash{}) {
-		return errInvalidMixDigest
-	}
+	// if header.MixDigest != (libcommon.Hash{}) {
+	// 	return errInvalidMixDigest
+	// }
 	// Ensure that the block doesn't contain any uncles which are meaningless in PoA
 	if header.UncleHash != uncleHash {
 		return errInvalidUncleHash
@@ -83,6 +93,14 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 
 	// All basic checks passed, verify cascading fields
 	return c.verifyCascadingFields(chain, header, parents)
+}
+
+func (c *Clique) getVoteAddr(header *types.Header) libcommon.Address {
+	if c.ChainConfig.IsErawan(header.Number.Uint64()) {
+		return libcommon.BytesToAddress(header.MixDigest[12:])
+	} else {
+		return header.Coinbase
+	}
 }
 
 // verifyCascadingFields verifies all the header fields that are not standalone,
@@ -166,7 +184,7 @@ func (c *Clique) Snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 		}
 		// If an on-disk checkpoint snapshot can be found, use that
 		if number%c.snapshotConfig.CheckpointInterval == 0 {
-			if s, err := loadSnapshot(c.config, c.DB, number, hash); err == nil {
+			if s, err := loadSnapshot(c.ChainConfig, c.DB, number, hash); err == nil {
 				c.logger.Trace("Loaded voting snapshot from disk", "number", number, "hash", hash)
 				snap = s
 				break
@@ -185,7 +203,7 @@ func (c *Clique) Snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 				for i := 0; i < len(signers); i++ {
 					copy(signers[i][:], checkpoint.Extra[ExtraVanity+i*length.Addr:])
 				}
-				snap = newSnapshot(c.config, number, hash, signers)
+				snap = newSnapshot(c.ChainConfig, number, hash, signers)
 				if err := snap.store(c.DB); err != nil {
 					return nil, err
 				}

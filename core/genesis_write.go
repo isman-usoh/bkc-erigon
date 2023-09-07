@@ -429,6 +429,20 @@ func ChiadoGenesisBlock() *types.Genesis {
 	}
 }
 
+func BitkubChainGenesisBlock() *types.Genesis {
+	return &types.Genesis{
+		Config:     params.BitkubChainConfig,
+		Nonce:      0,
+		Timestamp:  1617023722,
+		GasLimit:   65000000,
+		Difficulty: big.NewInt(1),
+		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000065cac36eaa04041d88704241933c41aabfe83ee0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		Mixhash:    libcommon.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		Coinbase:   libcommon.HexToAddress("0x0000000000000000000000000000000000000000"),
+		Alloc:      readPrealloc("allocs/bitkub.json"),
+	}
+}
+
 // Pre-calculated version of:
 //
 //	DevnetSignPrivateKey = crypto.HexToECDSA(sha256.Sum256([]byte("erigon devnet key")))
@@ -617,6 +631,8 @@ func GenesisBlockByChainName(chain string) *types.Genesis {
 		return GnosisGenesisBlock()
 	case networkname.ChiadoChainName:
 		return ChiadoGenesisBlock()
+	case networkname.BitkubChainName:
+		return BitkubChainGenesisBlock()
 	default:
 		return nil
 	}
