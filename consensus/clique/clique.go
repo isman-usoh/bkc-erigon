@@ -617,10 +617,6 @@ func (c *Clique) slash(spoiledVal libcommon.Address, state *state.IntraBlockStat
 		return systemTxs, nil, nil, err
 	}
 
-	if isSpanFirstBlock(c.ChainConfig, new(big.Int).Add(header.Number, libcommon.Big2)) {
-		currentSpan = new(big.Int).Add(currentSpan, libcommon.Big1)
-	}
-
 	slashed, err := c.contractClient.IsSlashed(snap.SystemContracts.SlashManager, spoiledVal, currentSpan, header, state)
 
 	if err != nil {
