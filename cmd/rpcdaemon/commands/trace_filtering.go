@@ -763,7 +763,7 @@ func (api *TraceAPIImpl) filterV3(ctx context.Context, dbtx kv.TemporalTx, fromB
 		vmConfig.Tracer = &ot
 		ibs := state.New(cachedReader)
 
-		blockCtx := transactions.NewEVMBlockContext(engine, lastHeader, true /* requireCanonical */, dbtx, api._blockReader)
+		blockCtx := core.NewEVMBlockContext(lastHeader, nil, transactions.MakeHeaderGetter(true /* requireCanonical */, dbtx, api._blockReader), engine, nil /* author */)
 		txCtx := core.NewEVMTxContext(msg)
 		evm := vm.NewEVM(blockCtx, txCtx, ibs, chainConfig, vmConfig)
 
