@@ -958,7 +958,7 @@ func (api *TraceAPIImpl) Call(ctx context.Context, args TraceCallParam, traceTyp
 		return nil, err
 	}
 
-	blockCtx := transactions.NewEVMBlockContext(engine, header, blockNrOrHash.RequireCanonical, tx, api._blockReader)
+	blockCtx := core.NewEVMBlockContext(header, nil, transactions.MakeHeaderGetter(blockNrOrHash.RequireCanonical, tx, api._blockReader), engine, nil /* author */)
 	txCtx := core.NewEVMTxContext(msg)
 
 	blockCtx.GasLimit = math.MaxUint64
@@ -1179,7 +1179,7 @@ func (api *TraceAPIImpl) doCallMany(ctx context.Context, dbtx kv.Tx, msgs []type
 		}
 
 		// Get a new instance of the EVM.
-		blockCtx := transactions.NewEVMBlockContext(engine, header, parentNrOrHash.RequireCanonical, dbtx, api._blockReader)
+		blockCtx := core.NewEVMBlockContext(header, chainConfig, transactions.MakeHeaderGetter(parentNrOrHash.RequireCanonical, dbtx, api._blockReader), engine, nil /* author */)
 		txCtx := core.NewEVMTxContext(msg)
 
 		if useParent {
