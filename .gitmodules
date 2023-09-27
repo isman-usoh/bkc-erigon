@@ -1,3 +1,9 @@
 [submodule "tests"]
 	path = tests/testdata
 	url = https://github.com/ethereum/tests
+[submodule "erigon-lib"]
+	path = erigon-lib
+	url = https://gitlab.com/bbt-blockchain/bitkub-chain/erigon-lib
+[submodule "erigon-snapshot"]
+	path = erigon-snapshot
+	url = https://gitlab.com/bbt-blockchain/bitkub-chain/erigon-snapshot
