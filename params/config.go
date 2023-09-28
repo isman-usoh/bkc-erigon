@@ -127,7 +127,7 @@ var (
 
 	ChiadoChainConfig = readChainSpec("chainspecs/chiado.json")
 
-	BitkubChainConfig = readChainSpec("chainspecs/bitkub-devnet.json")
+	BitkubChainConfig = readChainSpec("chainspecs/bitkub-mainnet.json")
 
 	CliqueSnapshot = NewSnapshotConfig(10, 1024, 16384, true, "")
 
