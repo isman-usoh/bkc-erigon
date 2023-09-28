@@ -1,6 +1,6 @@
 {
   "ChainName": "bkc",
-  "chainId": 12123,
+  "chainId": 96,
   "consensus": "clique",
   "homesteadBlock": 0,
   "eip150Block": 0,
