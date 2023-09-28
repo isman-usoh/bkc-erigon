@@ -503,7 +503,7 @@ func txnExecutor(tx kv.TemporalTx, chainConfig *chain.Config, engine consensus.E
 
 func (e *intraBlockExec) changeBlock(header *types.Header) {
 	e.blockNum = header.Number.Uint64()
-	blockCtx := transactions.NewEVMBlockContext(e.engine, header, true /* requireCanonical */, e.tx, e.br)
+	blockCtx := core.NewEVMBlockContext(header, e.chainConfig, transactions.MakeHeaderGetter(true /* requireCanonical */, e.tx, e.br), e.engine, nil /* author */)
 	e.blockCtx = &blockCtx
 	e.blockHash = header.Hash()
 	e.header = header
