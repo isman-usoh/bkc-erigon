@@ -20,7 +20,7 @@ var (
 	BorMainnet = fromToml(snapshothashes.BorMainnet)
 	Gnosis     = fromToml(snapshothashes.Gnosis)
 	Chiado     = fromToml(snapshothashes.Chiado)
-	Bkc        = fromToml(snapshothashes.Bkc)
+	BkcMainnet = fromToml(snapshothashes.BkcMainnet)
 
 	MainnetHistory    = fromToml(snapshothashes.MainnetHistory)
 	SepoliaHistory    = fromToml(snapshothashes.SepoliaHistory)
@@ -29,7 +29,7 @@ var (
 	BorMainnetHistory = fromToml(snapshothashes.BorMainnetHistory)
 	GnosisHistory     = fromToml(snapshothashes.GnosisHistory)
 	ChiadoHistory     = fromToml(snapshothashes.ChiadoHistory)
-	BkcHistory        = fromToml(snapshothashes.BkcHistory)
+	BkcMainnetHistory = fromToml(snapshothashes.BkcMainnetHistory)
 )
 
 type PreverifiedItem struct {
@@ -63,7 +63,7 @@ var (
 	BorMainnetChainSnapshotCfg = newCfg(BorMainnet, BorMainnetHistory)
 	GnosisChainSnapshotCfg     = newCfg(Gnosis, GnosisHistory)
 	ChiadoChainSnapshotCfg     = newCfg(Chiado, ChiadoHistory)
-	BkcMainnetChainSnapshotCfg = newCfg(Bkc, BkcHistory)
+	BkcMainnetChainSnapshotCfg = newCfg(BkcMainnet, BkcMainnetHistory)
 )
 
 func newCfg(preverified, preverifiedHistory Preverified) *Cfg {
