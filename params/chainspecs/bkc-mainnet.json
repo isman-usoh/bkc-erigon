@@ -1,5 +1,5 @@
 {
-  "ChainName": "bkc",
+  "ChainName": "bkc-mainnet",
   "chainId": 96,
   "consensus": "clique",
   "homesteadBlock": 0,
@@ -11,8 +11,9 @@
   "constantinopleBlock": 0,
   "petersburgBlock": 0,
   "istanbulBlock": 0,
-  "erawanBlock": 5519559,
-  "chaophrayaBlock": 14220246,
+  "erawanBlock": 3035353,
+  "chaophrayaBlock": 11366422,
+  "chaophrayaBangkokBlock": 11730740,
   "clique": {
     "span": 50,
     "period": 5,
