@@ -429,9 +429,9 @@ func ChiadoGenesisBlock() *types.Genesis {
 	}
 }
 
-func BitkubChainGenesisBlock() *types.Genesis {
+func BkcMainnetGenesisBlock() *types.Genesis {
 	return &types.Genesis{
-		Config:     params.BitkubChainConfig,
+		Config:     params.BkcMainnetChainConfig,
 		Nonce:      0,
 		Timestamp:  0x6088ff55,
 		GasLimit:   0x1C9C380,
@@ -440,6 +440,34 @@ func BitkubChainGenesisBlock() *types.Genesis {
 		Mixhash:    libcommon.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		Coinbase:   libcommon.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Alloc:      readPrealloc("allocs/bitkub-mainnet.json"),
+	}
+}
+
+func BkcTestnetGenesisBlock() *types.Genesis {
+	return &types.Genesis{
+		Config:     params.BkcTestnetChainConfig,
+		Nonce:      0,
+		Timestamp:  0x6061d2ea,
+		GasLimit:   0x5f5e100,
+		Difficulty: big.NewInt(1),
+		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000a06be4f8ccD1d7B08313c41A493264c51646eb6967dccc3D759608BE4f489251e9626dcFd48Ac3fd47fF249d9b2f0bA639C4Daeb702487bE3d2D2D91FbF1F454d831c60A5cd355bC7639dde1cBACCFBcdfF7a0FA46Df726085d0E9554176BF0A46d76cA20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		Mixhash:    libcommon.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		Coinbase:   libcommon.HexToAddress("0x0000000000000000000000000000000000000000"),
+		Alloc:      readPrealloc("allocs/bitkub-testnet.json"),
+	}
+}
+
+func BkcDevnetGenesisBlock() *types.Genesis {
+	return &types.Genesis{
+		Config:     params.BkcDevnetChainConfig,
+		Nonce:      0,
+		Timestamp:  0x6061d2ea,
+		GasLimit:   0x3dfd240,
+		Difficulty: big.NewInt(1),
+		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000065cac36eaa04041d88704241933c41aabfe83ee0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		Mixhash:    libcommon.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		Coinbase:   libcommon.HexToAddress("0x0000000000000000000000000000000000000000"),
+		Alloc:      readPrealloc("allocs/bitkub-devnet.json"),
 	}
 }
 
@@ -631,8 +659,12 @@ func GenesisBlockByChainName(chain string) *types.Genesis {
 		return GnosisGenesisBlock()
 	case networkname.ChiadoChainName:
 		return ChiadoGenesisBlock()
-	case networkname.BitkubChainName:
-		return BitkubChainGenesisBlock()
+	case networkname.BkcMainnetChainName:
+		return BkcMainnetGenesisBlock()
+	case networkname.BkcTestnetChainName:
+		return BkcTestnetGenesisBlock()
+	case networkname.BkcDevnetChainName:
+		return BkcDevnetGenesisBlock()
 	default:
 		return nil
 	}

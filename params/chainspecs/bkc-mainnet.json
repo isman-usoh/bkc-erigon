@@ -1,5 +1,5 @@
 {
-  "ChainName": "bkc",
+  "ChainName": "bkc-mainnet",
   "chainId": 96,
   "consensus": "clique",
   "homesteadBlock": 0,
