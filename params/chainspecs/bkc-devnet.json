@@ -1,6 +1,6 @@
 {
-    "ChainName": "bkc",
-    "chainId": 12123,
+    "ChainName": "bkc-devnet",
+    "chainId": 12124,
     "consensus": "clique",
     "homesteadBlock": 0,
     "eip150Block": 0,
