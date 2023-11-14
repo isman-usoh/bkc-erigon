@@ -1,24 +1,24 @@
 {
-    "ChainName": "bkc-testnet",
-    "chainId": 25925,
-    "consensus": "clique",
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "erawanBlock": 3035353,
-    "chaophrayaBlock": 11366422,
-    "chaophrayaBangkokBlock": 11730740,
-    "clique": {
-        "span": 50,
-        "period": 5,
-        "epoch": 30000,
-        "validatorContract": "0x724134567baaF90109947e12beB2c54FaD06287d",
-        "validatorContractV2": "0x5D9Fba8A40f876E76dB349731DeF0582135743C1"
-    }
+  "ChainName": "bkc-testnet",
+  "chainId": 25925,
+  "consensus": "clique",
+  "homesteadBlock": 0,
+  "eip150Block": 0,
+  "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "eip155Block": 0,
+  "eip158Block": 0,
+  "byzantiumBlock": 0,
+  "constantinopleBlock": 0,
+  "petersburgBlock": 0,
+  "istanbulBlock": 0,
+  "erawanBlock": 3035353,
+  "chaophrayaBlock": 11366422,
+  "chaophrayaBangkokBlock": 11730740,
+  "clique": {
+    "span": 50,
+    "period": 5,
+    "epoch": 30000,
+    "validatorContract": "0x724134567baaF90109947e12beB2c54FaD06287d",
+    "validatorContractV2": "0x5D9Fba8A40f876E76dB349731DeF0582135743C1"
+  }
 }
