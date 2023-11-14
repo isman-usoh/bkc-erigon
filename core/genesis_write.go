@@ -429,7 +429,7 @@ func ChiadoGenesisBlock() *types.Genesis {
 	}
 }
 
-func BkcMainetGenesisBlock() *types.Genesis {
+func BkcMainnetGenesisBlock() *types.Genesis {
 	return &types.Genesis{
 		Config:     params.BkcMainnetChainConfig,
 		Nonce:      0,
@@ -660,7 +660,7 @@ func GenesisBlockByChainName(chain string) *types.Genesis {
 	case networkname.ChiadoChainName:
 		return ChiadoGenesisBlock()
 	case networkname.BkcMainnetChainName:
-		return BkcMainetGenesisBlock()
+		return BkcMainnetGenesisBlock()
 	case networkname.BkcTestnetChainName:
 		return BkcTestnetGenesisBlock()
 	case networkname.BkcDevnetChainName:

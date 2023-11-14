@@ -11,9 +11,8 @@
   "constantinopleBlock": 0,
   "petersburgBlock": 0,
   "istanbulBlock": 0,
-  "erawanBlock": 3035353,
-  "chaophrayaBlock": 11366422,
-  "chaophrayaBangkokBlock": 11730740,
+  "erawanBlock": 5519559,
+  "chaophrayaBlock": 14220246,
   "clique": {
     "span": 50,
     "period": 5,
