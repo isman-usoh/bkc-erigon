@@ -184,8 +184,9 @@ func (cc *ContractClient) GetCurrentValidators(header *types.Header, ibs *state.
 		return nil, nil, err
 	}
 	msgData := hexutility.Bytes(data)
+	toAddress := cc.getValidatorContract(blockNumber)
 	ibsWithoutCache := state.New(ibs.StateReader)
-	_, result, err := cc.systemCall(header.Coinbase, cc.config.Clique.ValidatorContract, msgData[:], ibsWithoutCache, header, u256.Num0)
+	_, result, err := cc.systemCall(header.Coinbase, toAddress, msgData[:], ibsWithoutCache, header, u256.Num0)
 	if err != nil {
 		return nil, nil, err
 	}
