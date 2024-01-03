@@ -1,42 +1,10 @@
 # Erigon
 
-Erigon is an implementation of Ethereum (execution client with light client for consensus layer), on the efficiency
-frontier. [Archive Node](https://ethereum.org/en/developers/docs/nodes-and-clients/archive-nodes/#what-is-an-archive-node)
+### ❗❗PLEASE NOTE  ERIGON (BITKUB CHAIN MODIFICATION) IS NOT SUPPORTED AND NOT RECOMMENDED TO USE AS A VALIDATOR NODE ❗❗
+
+Erigon (BITKUB CHAIN MODIFICATION) is a fork of [Erigon](https://github.com/ledgerwatch/erigon) and implementation of Bitkub chain (execution client with light client for consensus layer), on the efficiency
+frontier. [Archive Node](https://docs.bitkubchain.org/bitkub-chain-pos/run-archive-node)
 by default.
-
-![Build status](https://github.com/ledgerwatch/erigon/actions/workflows/ci.yml/badge.svg)
-
-![Coverage](https://gist.githubusercontent.com/revitteth/ee38e9beb22353eef6b88f2ad6ed7aa9/raw/badge.svg)
-
-<!--ts-->
-
-- [System Requirements](#system-requirements)
-- [Usage](#usage)
-    + [Getting Started](#getting-started)
-    + [Logging](#logging)
-    + [Testnets](#testnets)
-    + [Block Production](#block-production-pow-miner-or-pos-validator)
-    + [Windows](#windows)
-    + [GoDoc](https://godoc.org/github.com/ledgerwatch/erigon)
-    + [Beacon Chain](#beacon-chain-consensus-layer)
-    + [Dev Chain](#dev-chain)
-
-- [Key features](#key-features)
-    + [More Efficient State Storage](#more-efficient-state-storage)
-    + [Faster Initial Sync](#faster-initial-sync)
-    + [JSON-RPC daemon](#json-rpc-daemon)
-    + [Run all components by docker-compose](#run-all-components-by-docker-compose)
-    + [Grafana dashboard](#grafana-dashboard)
-- [Documentation](#documentation)
-- [FAQ](#faq)
-- [Getting in touch](#getting-in-touch)
-    + [Erigon Discord Server](#erigon-discord-server)
-    + [Reporting security issues/concerns](#reporting-security-issues/concerns)
-    + [Team](#team)
-- [Known issues](#known-issues)
-    + [`htop` shows incorrect memory usage](#htop-shows-incorrect-memory-usage)
-
-<!--te-->
 
 **Disclaimer**: this software is currently a tech preview. We will do our best to keep it stable and make no breaking
 changes but we don't guarantee anything. Things can and will break.
@@ -49,15 +17,8 @@ in `erigon --help`). We don't allow change this flag after first start.
 System Requirements
 ===================
 
-* For an Archive node of Ethereum Mainnet we recommend >=3TB storage space: 1.8TB state (as of March 2022),
-  200GB temp files (can symlink or mount folder `<datadir>/temp` to another disk). Ethereum Mainnet Full node (
-  see `--prune*` flags): 400Gb (April 2022).
-
-* Goerli Full node (see `--prune*` flags): 189GB on Beta, 114GB on Alpha (April 2022).
-
-* Gnosis Chain Archive: 370GB (January 2023).
-
-* Polygon Mainnet Archive: 5TB. Polygon Mumbai Archive: 1TB. (April 2022).
+* For an Archive node of Ethereum Mainnet we recommend >=2TB storage space: 0.8TB state (as of Jan 2024),
+  100GB temp files (can symlink or mount folder `<datadir>/temp` to another disk).
 
 SSD or NVMe. Do not recommend HDD - on HDD Erigon will always stay N blocks behind chain tip, but not fall behind.
 Bear in mind that SSD performance deteriorates when close to capacity.
@@ -66,8 +27,6 @@ RAM: >=16GB, 64-bit architecture.
 
 [Golang version >= 1.19](https://golang.org/doc/install); GCC 10+ or Clang; On Linux: kernel > v4
 
-<code>🔬 more details on disk storage [here](https://erigon.substack.com/p/disk-footprint-changes-in-new-erigon?s=r)
-and [here](https://ledgerwatch.github.io/turbo_geth_release.html#Disk-space).</code>
 
 Usage
 =====
@@ -77,20 +36,8 @@ Usage
 For building the latest stable release (this will be suitable for most users just wanting to run a node):
 
 ```sh
-git clone --branch stable --single-branch https://github.com/ledgerwatch/erigon.git
-cd erigon
-make erigon
-./build/bin/erigon
-```
-
-You can check [the list of releases](https://github.com/ledgerwatch/erigon/releases) for release notes.
-
-For building the bleeding edge development branch:
-
-```sh
 git clone --recurse-submodules https://github.com/ledgerwatch/erigon.git
 cd erigon
-git checkout devel
 make erigon
 ./build/bin/erigon
 ```
@@ -101,10 +48,8 @@ download speed by flag `--torrent.download.rate=20mb`. <code>🔬 See [Downloade
 
 Use `--datadir` to choose where to store data.
 
-Use `--chain=gnosis` for [Gnosis Chain](https://www.gnosis.io/), `--chain=bor-mainnet` for Polygon Mainnet,
-and `--chain=mumbai` for Polygon Mumbai.
-For Gnosis Chain you need a [Consensus Layer](#beacon-chain-consensus-layer) client alongside
-Erigon (https://docs.gnosischain.com/node/guide/beacon).
+Use `--chain=bkc-mainnet` for Bitkub Chain Mainnet
+and `--chain=bkc-testnet` for Bitkub Chain Testnet.
 
 Running `make help` will list and describe the convenience commands available in the [Makefile](./Makefile).
 
@@ -156,13 +101,6 @@ Don't start services as separated processes unless you have clear reason for it:
 your own implementation, security.
 How to start Erigon's services as separated processes, see in [docker-compose.yml](./docker-compose.yml).
 
-### Embedded Consensus Layer
-
-On Ethereum Mainnet, Görli, and Sepolia, the Engine API can be disabled in favour of the Erigon native Embedded
-Consensus Layer.
-If you want to use the internal Consensus Layer, run Erigon with flag `--internalcl`.
-_Warning:_ Staking (block production) is not possible with the embedded CL.
-
 ### Testnets
 
 If you would like to give Erigon a try, but do not have spare 2TB on your drive, a good option is to start syncing one
@@ -172,74 +110,12 @@ of the public testnets, Görli. It syncs much quicker, and does not take so much
 git clone --recurse-submodules -j8 https://github.com/ledgerwatch/erigon.git
 cd erigon
 make erigon
-./build/bin/erigon --datadir=<your_datadir> --chain=goerli
+./build/bin/erigon --datadir=<your_datadir> --chain=bkc-testnet
 ```
 
 Please note the `--datadir` option that allows you to store Erigon files in a non-default location, in this example,
 in `goerli` subdirectory of the current directory. Name of the directory `--datadir` does not have to match the name of
 the chain in `--chain`.
-
-### Block Production (PoW Miner or PoS Validator)
-
-**Disclaimer: Not supported/tested for Gnosis Chain and Polygon Network (In Progress)**
-
-Support only remote-miners.
-
-* To enable, add `--mine --miner.etherbase=...` or `--mine --miner.miner.sigkey=...` flags.
-* Other supported options: `--miner.extradata`, `--miner.notify`, `--miner.gaslimit`, `--miner.gasprice`
-  , `--miner.gastarget`
-* JSON-RPC supports methods: eth_coinbase , eth_hashrate, eth_mining, eth_getWork, eth_submitWork, eth_submitHashrate
-* JSON-RPC supports websocket methods: newPendingTransaction
-* TODO:
-    + we don't broadcast mined blocks to p2p-network
-      yet, [but it's easy to accomplish](https://github.com/ledgerwatch/erigon/blob/9b8cdc0f2289a7cef78218a15043de5bdff4465e/eth/downloader/downloader.go#L673)
-    + eth_newPendingTransactionFilter
-    + eth_newBlockFilter
-    + eth_newFilter
-    + websocket Logs
-
-<code> 🔬 Detailed explanation is [here](/docs/mining.md).</code>
-
-### Windows
-
-Windows users may run erigon in 3 possible ways:
-
-* Build executable binaries natively for Windows using provided `wmake.ps1` PowerShell script. Usage syntax is the same
-  as `make` command so you have to run `.\wmake.ps1 [-target] <targetname>`. Example: `.\wmake.ps1 erigon` builds erigon
-  executable. All binaries are placed in `.\build\bin\` subfolder. There are some requirements for a successful native
-  build on windows :
-    * [Git](https://git-scm.com/downloads) for Windows must be installed. If you're cloning this repository is very
-      likely you already have it
-    * [GO Programming Language](https://golang.org/dl/) must be installed. Minimum required version is 1.19
-    * GNU CC Compiler at least version 10 (is highly suggested that you install `chocolatey` package manager - see
-      following point)
-    * If you need to build MDBX tools (i.e. `.\wmake.ps1 db-tools`)
-      then [Chocolatey package manager](https://chocolatey.org/) for Windows must be installed. By Chocolatey you need
-      to install the following components : `cmake`, `make`, `mingw` by `choco install cmake make mingw`. Make sure
-      Windows System "Path" variable has:
-      C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
-
-  **Important note about Anti-Viruses**
-  During MinGW's compiler detection phase some temporary executables are generated to test compiler capabilities. It's
-  been reported some anti-virus programs detect those files as possibly infected by `Win64/Kryptic.CIS` trojan horse (or
-  a variant of it). Although those are false positives we have no control over 100+ vendors of security products for
-  Windows and their respective detection algorithms and we understand this might make your experience with Windows
-  builds uncomfortable. To workaround the issue you might either set exclusions for your antivirus specifically
-  for `build\bin\mdbx\CMakeFiles` sub-folder of the cloned repo or you can run erigon using the following other two
-  options
-
-* Use Docker :  see [docker-compose.yml](./docker-compose.yml)
-
-* Use WSL (Windows Subsystem for Linux) **strictly on version 2**. Under this option you can build Erigon just as you
-  would on a regular Linux distribution. You can point your data also to any of the mounted Windows partitions (
-  eg. `/mnt/c/[...]`, `/mnt/d/[...]` etc) but in such case be advised performance is impacted: this is due to the fact
-  those mount points use `DrvFS` which is a [network file system](#blocks-execution-is-slow-on-cloud-network-drives)
-  and, additionally, MDBX locks the db for exclusive access which implies only one process at a time can access data.
-  This has consequences on the running of `rpcdaemon` which has to be configured as [Remote DB](#for-remote-db) even if
-  it is executed on the very same computer. If instead your data is hosted on the native Linux filesystem non
-  limitations apply.
-  **Please also note the default WSL2 environment has its own IP address which does not match the one of the network
-  interface of Windows host: take this into account when configuring NAT for port 30303 on your router.**
 
 ### Using TOML or YAML Config Files
 
@@ -249,9 +125,9 @@ file can be overwritten by writing the flags directly on Erigon command line
 
 ### Example
 
-`./build/bin/erigon --config ./config.yaml --chain=goerli`
+`./build/bin/erigon --config ./config.yaml --chain=bkc-testnet`
 
-Assuming we have `chain : "mainnet"` in our configuration file, by adding `--chain=goerli` allows the overwrite of the
+Assuming we have `chain : "bkc-mainnet"` in our configuration file, by adding `--chain=bkc-testnet` allows the overwrite of the
 flag inside
 of the yaml configuration file and sets the chain to goerli
 
@@ -262,7 +138,7 @@ Example of setting up TOML config file
 ```
 `datadir = 'your datadir'
 port = 1111
-chain = "mainnet"
+chain = "bkc-mainnet"
 http = true
 "private.api.addr"="localhost:9090"
 
@@ -276,34 +152,12 @@ Example of setting up a YAML config file
 ```
 datadir : 'your datadir'
 port : 1111
-chain : "mainnet"
+chain : "bkc-mainnet"
 http : true
 private.api.addr : "localhost:9090"
 
 http.api : ["eth","debug","net"]
 ```
-
-### Beacon Chain (Consensus Layer)
-
-Erigon can be used as an Execution Layer (EL) for Consensus Layer clients (CL). Default configuration is OK.
-
-If your CL client is on a different device, add `--authrpc.addr 0.0.0.0` ([Engine API] listens on localhost by default)
-as well as `--authrpc.vhosts <CL host>` where `<CL host>` is your source host or `any`.
-
-[Engine API]: https://github.com/ethereum/execution-apis/blob/main/src/engine/specification.md
-
-In order to establish a secure connection between the Consensus Layer and the Execution Layer, a JWT secret key is
-automatically generated.
-
-The JWT secret key will be present in the datadir by default under the name of `jwt.hex` and its path can be specified
-with the flag `--authrpc.jwtsecret`.
-
-This piece of info needs to be specified in the Consensus Layer as well in order to establish connection successfully.
-More information can be found [here](https://github.com/ethereum/execution-apis/blob/main/src/engine/authentication.md).
-
-Once Erigon is running, you need to point your CL client to `<erigon address>:8551`,
-where `<erigon address>` is either `localhost` or the IP address of the device running Erigon, and also point to the JWT
-secret path created by Erigon.
 
 ### Multiple Instances / One Machine
 
@@ -533,7 +387,7 @@ Detailed explanation: [./docs/programmers_guide/db_faq.md](./docs/programmers_gu
 #### `erigon` ports
 
 | Port  | Protocol  |        Purpose         | Expose  |
-|:-----:|:---------:|:----------------------:|:-------:|
+| :---: | :-------: | :--------------------: | :-----: |
 | 30303 | TCP & UDP |     eth/66 peering     | Public  |
 | 30304 | TCP & UDP |     eth/67 peering     | Public  |
 | 9090  |    TCP    |    gRPC Connections    | Private |
@@ -548,9 +402,9 @@ node.
 
 #### `RPC` ports
 
-| Port | Protocol |           Purpose           | Expose  |
-|:----:|:--------:|:---------------------------:|:-------:|
-| 8545 |   TCP    | HTTP & WebSockets & GraphQL | Private |
+| Port  | Protocol |           Purpose           | Expose  |
+| :---: | :------: | :-------------------------: | :-----: |
+| 8545  |   TCP    | HTTP & WebSockets & GraphQL | Private |
 
 Typically, 8545 is exposed only internally for JSON-RPC queries. Both HTTP and WebSocket and GraphQL are on the same
 port.
@@ -558,7 +412,7 @@ port.
 #### `sentry` ports
 
 | Port  | Protocol  |     Purpose      | Expose  |
-|:-----:|:---------:|:----------------:|:-------:|
+| :---: | :-------: | :--------------: | :-----: |
 | 30303 | TCP & UDP |     Peering      | Public  |
 | 9091  |    TCP    | gRPC Connections | Private |
 
@@ -568,18 +422,18 @@ Port
 
 #### `sentinel` ports
 
-| Port | Protocol |     Purpose      | Expose  |
-|:----:|:--------:|:----------------:|:-------:|
-| 4000 |   UDP    |     Peering      | Public  |
-| 4001 |   TCP    |     Peering      | Public  |
-| 7777 |   TCP    | gRPC Connections | Private |
+| Port  | Protocol |     Purpose      | Expose  |
+| :---: | :------: | :--------------: | :-----: |
+| 4000  |   UDP    |     Peering      | Public  |
+| 4001  |   TCP    |     Peering      | Public  |
+| 7777  |   TCP    | gRPC Connections | Private |
 
 #### Other ports
 
-| Port | Protocol | Purpose | Expose  |
-|:----:|:--------:|:-------:|:-------:|
-| 6060 |   TCP    |  pprof  | Private |
-| 6060 |   TCP    | metrics | Private |
+| Port  | Protocol | Purpose | Expose  |
+| :---: | :------: | :-----: | :-----: |
+| 6060  |   TCP    |  pprof  | Private |
+| 6060  |   TCP    | metrics | Private |
 
 Optional flags can be enabled that enable pprof or metrics (or both) - however, they both run on 6060 by default, so
 you'll have to change one if you want to run both at the same time. use `--help` with the binary for more info.

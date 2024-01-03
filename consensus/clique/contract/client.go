@@ -96,8 +96,9 @@ func (cc *ContractClient) GetCurrentSpan(header *types.Header, ibs *state.IntraB
 	}
 
 	msgData := hexutility.Bytes(data)
+	toAddress := cc.getValidatorContract(header.Number)
 	ibsWithoutCache := state.New(ibs.StateReader)
-	_, result, err := cc.systemCall(header.Coinbase, cc.config.Clique.ValidatorContract, msgData[:], ibsWithoutCache, header, u256.Num0)
+	_, result, err := cc.systemCall(header.Coinbase, toAddress, msgData[:], ibsWithoutCache, header, u256.Num0)
 
 	if err != nil {
 		return nil, err
@@ -235,8 +236,9 @@ func (cc *ContractClient) GetEligibleValidators(header *types.Header, ibs *state
 	}
 
 	msgData := hexutility.Bytes(data)
+	toAddress := cc.getValidatorContract(header.Number)
 	ibsWithoutCache := state.New(ibs.StateReader)
-	_, result, err := cc.systemCall(header.Coinbase, cc.config.Clique.ValidatorContract, msgData[:], ibsWithoutCache, header, u256.Num0)
+	_, result, err := cc.systemCall(header.Coinbase, toAddress, msgData[:], ibsWithoutCache, header, u256.Num0)
 	if err != nil {
 		return nil, err
 	}

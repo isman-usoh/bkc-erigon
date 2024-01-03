@@ -3,9 +3,9 @@
 	url = https://github.com/ethereum/tests
 [submodule "erigon-lib"]
 	path = erigon-lib
-	url = git@gitlab.com:bbt-blockchain/bitkub-chain/erigon-lib.git
-	branch = bkc-pos
+	url = git@gitlab-shell.bbtcorp.io:bbt-blockchain/bitkub-chain/erigon-lib.git
+	branch = bkc/main
 [submodule "erigon-snapshot"]
 	path = erigon-snapshot
-	url = git@gitlab.com:bbt-blockchain/bitkub-chain/erigon-snapshot.git
-	branch = bkc/mainnet
+	url = git@gitlab-shell.bbtcorp.io:bbt-blockchain/bitkub-chain/erigon-snapshot.git
+	branch = bkc/main
