@@ -47,6 +47,7 @@ type CallArgs struct {
 	Value                *hexutil.Big       `json:"value"`
 	Nonce                *hexutil.Uint64    `json:"nonce"`
 	Data                 *hexutility.Bytes  `json:"data"`
+	Input                *hexutility.Bytes  `json:"input"`
 	AccessList           *types2.AccessList `json:"accessList"`
 	ChainID              *hexutil.Big       `json:"chainId,omitempty"`
 }
@@ -142,9 +143,13 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *uint256.Int) (type
 		}
 	}
 	var data []byte
+	if args.Input != nil {
+		data = *args.Input
+	}
 	if args.Data != nil {
 		data = *args.Data
 	}
+
 	var accessList types2.AccessList
 	if args.AccessList != nil {
 		accessList = *args.AccessList
