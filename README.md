@@ -1,12 +1,10 @@
 # Erigon
 
-Erigon is an implementation of Ethereum (execution client with light client for consensus layer), on the efficiency
-frontier. [Archive Node](https://ethereum.org/en/developers/docs/nodes-and-clients/archive-nodes/#what-is-an-archive-node)
+### ❗❗PLEASE NOTE  ERIGON (BKC) IS NOT SUPPORTED AND NOT RECOMMENDED TO USE AS A VALIDATOR NODE ❗❗
+
+Erigon (BKC) is a fork of [Erigon](https://github.com/ledgerwatch/erigon) and implementation of Bitkub chain (execution client with light client for consensus layer), on the efficiency
+frontier. [Archive Node](https://docs.bitkubchain.org/bitkub-chain-pos/run-archive-node)
 by default.
-
-![Build status](https://github.com/ledgerwatch/erigon/actions/workflows/ci.yml/badge.svg)
-
-![Coverage](https://gist.githubusercontent.com/revitteth/ee38e9beb22353eef6b88f2ad6ed7aa9/raw/badge.svg)
 
 <!--ts-->
 
