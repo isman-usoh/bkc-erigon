@@ -212,7 +212,7 @@ func NewReusableCaller(
 		return nil, err
 	}
 
-	blockCtx := NewEVMBlockContext(engine, header, blockNrOrHash.RequireCanonical, tx, headerReader)
+	blockCtx := core.NewEVMBlockContext(header, chainConfig, MakeHeaderGetter(blockNrOrHash.RequireCanonical, tx, headerReader), engine, nil /* author */)
 	txCtx := core.NewEVMTxContext(msg)
 
 	evm := vm.NewEVM(blockCtx, txCtx, ibs, chainConfig, vm.Config{NoBaseFee: true})
